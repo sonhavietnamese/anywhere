@@ -7,7 +7,10 @@
     container-type: inline-size;
   }
 
-  .blink input[type="date"]::-webkit-inner-spin-button, input[type="date"]::-webkit-calendar-picker-indicator, input[type="datetime-local"]::-webkit-inner-spin-button, input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  .blink input[type='date']::-webkit-inner-spin-button,
+  input[type='date']::-webkit-calendar-picker-indicator,
+  input[type='datetime-local']::-webkit-inner-spin-button,
+  input[type='datetime-local']::-webkit-calendar-picker-indicator {
     /*
       this is very dirty hack to make picker openable, since in chrome ext environment, programmatic `showPicker` doesn't work and/or crashes the browser
       https://issues.chromium.org/issues/356419161
@@ -69,10 +72,15 @@
     --blink-border-radius-rounded-input: 0.5rem;
     --blink-border-radius-rounded-input-standalone: 0.5rem;
 
-    --blink-shadow-container: 0px 129.333px 103.467px 0px rgba(0, 0, 0, 0.07), 0px 54.032px 43.226px 0px rgba(0, 0, 0, 0.05), 0px 16.195px 12.956px 0px rgba(0, 0, 0, 0.04), 0px 8.601px 6.881px 0px rgba(0, 0, 0, 0.03), 0px 3.579px 2.863px 0px rgba(0, 0, 0, 0.02);
+    --blink-shadow-container: 0px 129.333px 103.467px 0px rgba(0, 0, 0, 0.07),
+      0px 54.032px 43.226px 0px rgba(0, 0, 0, 0.05),
+      0px 16.195px 12.956px 0px rgba(0, 0, 0, 0.04),
+      0px 8.601px 6.881px 0px rgba(0, 0, 0, 0.03),
+      0px 3.579px 2.863px 0px rgba(0, 0, 0, 0.02);
   }
 
-  .x-dark, .x-light {
+  .x-dark,
+  .x-light {
     --blink-border-radius-rounded-lg: 0.25rem;
     --blink-border-radius-rounded-xl: 0.5rem;
     --blink-border-radius-rounded-2xl: 1.125rem;
@@ -83,7 +91,7 @@
 
   .x-dark {
     --blink-bg-primary: #202327;
-    --blink-bg-secondary: #262A2D;
+    --blink-bg-secondary: #262a2d;
     --blink-button: #1d9bf0;
     --blink-button-disabled: #2f3336;
     --blink-button-hover: #3087da;
@@ -126,16 +134,17 @@
     --blink-transparent-grey: #6e767d1a;
     --blink-transparent-warning: #a966001a;
 
-    --blink-shadow-container: 0px 2px 8px 0px rgba(59, 176, 255, 0.22), 0px 1px 48px 0px rgba(29, 155, 240, 0.24);
+    --blink-shadow-container: 0px 2px 8px 0px rgba(59, 176, 255, 0.22),
+      0px 1px 48px 0px rgba(29, 155, 240, 0.24);
   }
 
   .x-light {
     --blink-bg-primary: #ffffff;
-    --blink-bg-secondary: #F7F7F7;
+    --blink-bg-secondary: #f7f7f7;
     --blink-button: #499bea;
-    --blink-button-disabled: #F0F3F4;
+    --blink-button-disabled: #f0f3f4;
     --blink-button-hover: #428cd2;
-    --blink-button-success: #00B1271a;
+    --blink-button-success: #00b1271a;
     --blink-icon-error: #f71a05;
     --blink-icon-error-hover: #ff402e;
     --blink-icon-primary: #949ca4;
@@ -174,8 +183,20 @@
     --blink-transparent-grey: #6e767d1a;
     --blink-transparent-warning: #ffbc6e1a;
 
-    --blink-shadow-container: 0px 2px 8px 0px rgba(62, 177, 255, 0.22), 0px 1px 48px 0px rgba(62, 177, 255, 0.24);
+    --blink-shadow-container: 0px 2px 8px 0px rgba(62, 177, 255, 0.22),
+      0px 1px 48px 0px rgba(62, 177, 255, 0.24);
   }
 
-  .custom {}
+  .custom {
+  }
+
+  .anywhere-popup {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+  }
 }
