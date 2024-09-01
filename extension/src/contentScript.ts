@@ -18,8 +18,8 @@ const adapter = (wallet: string) =>
         type: 'connect',
       }),
     metadata: {
-      // supportedBlockchainIds: [BlockchainIds.SOLANA_MAINNET],
-      supportedBlockchainIds: [BlockchainIds.SOLANA_DEVNET],
+      supportedBlockchainIds: [BlockchainIds.SOLANA_MAINNET],
+      // supportedBlockchainIds: [BlockchainIds.SOLANA_DEVNET],
     },
   });
 

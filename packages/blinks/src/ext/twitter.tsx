@@ -3,25 +3,29 @@ import { createPortal } from 'react-dom'
 import { createRoot } from 'react-dom/client'
 import { useOnClickOutside } from 'usehooks-ts'
 import {
+  AbstractActionComponent,
   Action,
   type ActionAdapter,
   type ActionCallbacksConfig,
+  type ActionContext,
   ActionsRegistry,
   type ActionSupportStrategy,
+  ButtonActionComponent,
   defaultActionSupportStrategy,
+  FormActionComponent,
   getExtendedActionState,
   getExtendedInterstitialState,
   getExtendedWebsiteState,
+  MultiValueActionComponent,
+  SingleValueActionComponent,
 } from '../api'
 import { checkSecurity, type SecurityLevel } from '../shared'
 import { ActionContainer, type StylePreset } from '../ui'
+import { SpinnerDots } from '../ui/icons/SpinnerDots.tsx'
 import { noop } from '../utils/constants'
 import { isInterstitial } from '../utils/interstitial-url.ts'
 import { proxify } from '../utils/proxify.ts'
 import { type ActionsJsonConfig, ActionsURLMapper } from '../utils/url-mapper'
-
-// const RPC_URL = 'https://api.mainnet-beta.solana.com'
-// const connection = new Connection(RPC_URL)
 
 type ObserverSecurityLevel = SecurityLevel
 
@@ -113,14 +117,26 @@ export function setupTwitterObserver(
   })
 }
 
-const ReactSpan = ({ domain }: { domain: string }) => {
+const ReactSpan = ({
+  domain,
+  adapter,
+}: {
+  domain: string
+  adapter: ActionAdapter
+}) => {
   const [showPopup, setShowPopup] = useState(false)
   const popupRef = useRef<HTMLDivElement>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [owner, setOwner] = useState<string | null>(null)
+  const [state, setState] = useState<
+    'idle' | 'loading' | 'signing' | 'success' | 'error'
+  >('idle')
+  const [selectedTip, setSelectedTip] = useState<'SEND' | 'SOL'>()
 
   const handleClickOutside = () => {
     setShowPopup(false)
+    setSelectedTip(undefined)
+    setState('idle')
   }
 
   useOnClickOutside(popupRef, handleClickOutside)
@@ -135,9 +151,7 @@ const ReactSpan = ({ domain }: { domain: string }) => {
         popupRef.current.style.zIndex = '1000'
       }
 
-      resolveDomain(domain).then((owner) => {
-        console.log(owner)
-      })
+      resolveDomain(domain)
     }
   }, [showPopup])
 
@@ -158,6 +172,84 @@ const ReactSpan = ({ domain }: { domain: string }) => {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const asButtonProps = (it: ButtonActionComponent) => {
+    return {
+      text: it.label,
+      loading: false,
+      disabled: false,
+      variant: 'primary',
+      onClick: (params?: Record<string, string | string[]>) =>
+        execute(it.parentComponent ?? it, params),
+    }
+  }
+
+  const execute = async (
+    component: AbstractActionComponent,
+    params?: Record<string, string | string[]>,
+  ) => {
+    if (params) {
+      if (component instanceof FormActionComponent) {
+        Object.entries(params).forEach(([name, value]) =>
+          component.setValue(value, name),
+        )
+      }
+
+      if (component instanceof MultiValueActionComponent) {
+        component.setValue(params[component.parameter.name])
+      }
+
+      if (component instanceof SingleValueActionComponent) {
+        const incomingValues = params[component.parameter.name]
+        const value =
+          typeof incomingValues === 'string'
+            ? incomingValues
+            : incomingValues[0]
+        component.setValue(value)
+      }
+    }
+
+    const context: ActionContext = {
+      action: component.parent,
+      actionType: 'trusted',
+      originalUrl: 'https://www.blinkathon.fun/',
+      triggeredLinkedAction: component,
+    }
+
+    const account = await adapter.connect(context)
+
+    try {
+      setState('loading')
+
+      const response = await fetch('http://localhost:3000/api/profile', {
+        method: 'POST',
+        body: JSON.stringify({ account }),
+      })
+
+      const data = await response.json()
+      const transaction = data.transaction
+      setState('signing')
+
+      const signature = await adapter.signTransaction(transaction, context)
+
+      if (!signature) {
+        setState('error')
+        throw new Error('No signature')
+      }
+
+      setState('success')
+    } catch (error) {
+      setState('error')
+      setSelectedTip(undefined)
+    }
+  }
+
+  const buttons = []
+
+  const doTransaction = async () => {
+    await asButtonProps({}).onClick()
+    // const account = await adapter.connect(context) // const connection = await adapter.connect()
   }
 
   return (
@@ -206,19 +298,19 @@ const ReactSpan = ({ domain }: { domain: string }) => {
               style={{
                 position: 'absolute',
                 top: 20,
-                right: 0,
+                right: -70,
                 zIndex: 1,
               }}
-              width="202"
-              height="184"
-              viewBox="0 0 202 184"
+              width="237"
+              height="246"
+              viewBox="0 0 237 246"
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
             >
               <g filter="url(#filter0_f_113_1479)">
                 <ellipse
                   cx="118.464"
-                  cy="95.6686"
+                  cy="122.669"
                   rx="40.4645"
                   ry="44.6686"
                   fill="url(#paint0_linear_113_1479)"
@@ -229,7 +321,7 @@ const ReactSpan = ({ domain }: { domain: string }) => {
                 <filter
                   id="filter0_f_113_1479"
                   x="0.0139618"
-                  y="-26.986"
+                  y="0.0139618"
                   width="236.902"
                   height="245.309"
                   filterUnits="userSpaceOnUse"
@@ -250,9 +342,68 @@ const ReactSpan = ({ domain }: { domain: string }) => {
                 <linearGradient
                   id="paint0_linear_113_1479"
                   x1="118.464"
-                  y1="51"
+                  y1="78"
                   x2="118.464"
-                  y2="140.337"
+                  y2="167.337"
+                  gradientUnits="userSpaceOnUse"
+                >
+                  <stop stop-color="#4369E7" />
+                  <stop offset="1" stop-color="#7E22CE" />
+                </linearGradient>
+              </defs>
+            </svg>
+
+            <svg
+              style={{
+                position: 'absolute',
+                bottom: -100,
+                left: -70,
+                zIndex: 1,
+              }}
+              width="237"
+              height="246"
+              viewBox="0 0 237 246"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <g filter="url(#filter0_f_113_1479)">
+                <ellipse
+                  cx="118.464"
+                  cy="122.669"
+                  rx="40.4645"
+                  ry="44.6686"
+                  fill="url(#paint0_linear_113_1479)"
+                  fill-opacity="0.6"
+                />
+              </g>
+              <defs>
+                <filter
+                  id="filter0_f_113_1479"
+                  x="0.0139618"
+                  y="0.0139618"
+                  width="236.902"
+                  height="245.309"
+                  filterUnits="userSpaceOnUse"
+                  color-interpolation-filters="sRGB"
+                >
+                  <feFlood flood-opacity="0" result="BackgroundImageFix" />
+                  <feBlend
+                    mode="normal"
+                    in="SourceGraphic"
+                    in2="BackgroundImageFix"
+                    result="shape"
+                  />
+                  <feGaussianBlur
+                    stdDeviation="38.993"
+                    result="effect1_foregroundBlur_113_1479"
+                  />
+                </filter>
+                <linearGradient
+                  id="paint0_linear_113_1479"
+                  x1="118.464"
+                  y1="78"
+                  x2="118.464"
+                  y2="167.337"
                   gradientUnits="userSpaceOnUse"
                 >
                   <stop stop-color="#4369E7" />
@@ -268,6 +419,7 @@ const ReactSpan = ({ domain }: { domain: string }) => {
               height: '100%',
               overflow: 'hidden',
               position: 'relative',
+              zIndex: 10,
             }}
           >
             <figure
@@ -393,7 +545,7 @@ const ReactSpan = ({ domain }: { domain: string }) => {
 
             <div
               style={{
-                padding: '32px 18px',
+                padding: '32px 18px 10px',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: 6,
@@ -438,6 +590,38 @@ const ReactSpan = ({ domain }: { domain: string }) => {
 
             <div
               style={{
+                padding: '0px 16px',
+                display: 'flex',
+                gap: 3,
+              }}
+            >
+              <span
+                style={{
+                  padding: '2px 6px',
+                  borderRadius: 4,
+                  fontSize: 12,
+                  backgroundColor: 'rgba(255,255,255,0.1)',
+                  color: 'rgba(255,255,255,0.7)',
+                }}
+              >
+                Developer
+              </span>
+              <span
+                style={{
+                  padding: '2px 6px',
+                  borderRadius: 4,
+                  fontSize: 12,
+                  backgroundColor: 'rgba(255,255,255,0.1)',
+                  color: 'rgba(255,255,255,0.7)',
+                  fontFamily: 'inherit',
+                }}
+              >
+                SuperteamVN
+              </span>
+            </div>
+
+            <div
+              style={{
                 display: 'flex',
                 flexDirection: 'column',
                 gap: 8,
@@ -451,58 +635,153 @@ const ReactSpan = ({ domain }: { domain: string }) => {
                   fontSize: 12,
                 }}
               >
-                Tip
+                Cheers up
               </small>
               <div
                 style={{
                   display: 'flex',
                   gap: 8,
+                  fontSize: 14,
                 }}
               >
-                <button
-                  style={{
-                    flex: 1,
-                    outline: 'none',
-                    border: 'none',
-                    padding: 12,
-                    borderRadius: 12,
-                    backgroundColor: '#1A1616',
-                    color: 'white',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                  }}
-                  onClick={() => {
-                    console.log('tip')
-                  }}
-                >
-                  <span>
-                    <strong>$SEND</strong>
-                  </span>
-                </button>
-                <button
-                  style={{
-                    flex: 1,
-                    outline: 'none',
-                    border: 'none',
-                    padding: 12,
-                    borderRadius: 12,
-                    backgroundColor: '#1A1616',
-                    color: 'white',
-                    display: 'flex',
-                    alignItems: 'center',
-                    cursor: 'pointer',
-                    justifyContent: 'center',
-                  }}
-                  onClick={() => {
-                    console.log('tip')
-                  }}
-                >
-                  <span>
-                    <strong>$SOL</strong>
-                  </span>
-                </button>
+                {selectedTip === undefined && (
+                  <>
+                    <button
+                      style={{
+                        flex: 1,
+                        outline: 'none',
+                        border: 'none',
+                        padding: 12,
+                        borderRadius: 12,
+                        backgroundColor: '#000000',
+                        color: 'white',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                      }}
+                      disabled={state !== 'idle'}
+                      onClick={() => {
+                        setSelectedTip('SEND')
+                        doTransaction()
+                      }}
+                    >
+                      <span>
+                        <strong>$SEND</strong>
+                      </span>
+                    </button>
+                    <button
+                      style={{
+                        flex: 1,
+                        outline: 'none',
+                        border: 'none',
+                        padding: 12,
+                        borderRadius: 12,
+                        backgroundColor: '#1A1616',
+                        color: 'white',
+                        display: 'flex',
+                        alignItems: 'center',
+                        cursor: 'pointer',
+                        justifyContent: 'center',
+                      }}
+                      disabled={state !== 'idle'}
+                      onClick={() => {
+                        setSelectedTip('SOL')
+                        doTransaction()
+                      }}
+                    >
+                      <span>
+                        <strong>$SOL</strong>
+                      </span>
+                    </button>
+                  </>
+                )}
+                {selectedTip === 'SEND' && (
+                  <button
+                    style={{
+                      flex: 1,
+                      outline: 'none',
+                      border: 'none',
+                      padding: 12,
+                      borderRadius: 12,
+                      backgroundColor: '#000000',
+                      color: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      gap: 8,
+                    }}
+                    disabled={state !== 'idle'}
+                    onClick={() => {
+                      setSelectedTip('SEND')
+                      console.log('tip')
+                    }}
+                  >
+                    {(state === 'loading' || state === 'signing') && (
+                      <SpinnerDots />
+                    )}
+                    {state === 'loading' && (
+                      <span>
+                        Sending <strong>$SEND</strong>
+                      </span>
+                    )}
+                    {state === 'signing' && <span>Signing transaction</span>}
+                    {state === 'idle' && (
+                      <span>
+                        <strong>$SEND</strong>
+                      </span>
+                    )}
+                    {state === 'success' && (
+                      <span>
+                        Cheered <strong>{domain.split('.')[0]}</strong> up! 🎉
+                      </span>
+                    )}
+                  </button>
+                )}
+                {selectedTip === 'SOL' && (
+                  <button
+                    style={{
+                      flex: 1,
+                      outline: 'none',
+                      border: 'none',
+                      padding: 12,
+                      borderRadius: 12,
+                      backgroundColor: '#1A1616',
+                      color: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      cursor: 'pointer',
+                      justifyContent: 'center',
+                      gap: 8,
+                    }}
+                    disabled={state !== 'idle'}
+                    onClick={() => {
+                      setSelectedTip('SOL')
+                    }}
+                  >
+                    {(state === 'loading' || state === 'signing') && (
+                      <SpinnerDots />
+                    )}
+
+                    {state === 'loading' && (
+                      <span>
+                        Sending <strong>$SOL</strong>
+                      </span>
+                    )}
+                    {state === 'signing' && <span>Signing transaction</span>}
+                    {state === 'idle' && (
+                      <span>
+                        <strong>$SOL</strong>
+                      </span>
+                    )}
+                    {state === 'success' && (
+                      <span>
+                        Cheered <strong>{domain.split('.')[0]}</strong> up! 🎉
+                      </span>
+                    )}
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -542,7 +821,7 @@ async function handleNewNode(
 
     if (placeholder) {
       const root = createRoot(placeholder)
-      root.render(<ReactSpan domain={domains[0]} />)
+      root.render(<ReactSpan adapter={config} domain={domains[0]} />)
     }
   }
 

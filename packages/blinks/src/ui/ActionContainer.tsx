@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useReducer, useState } from 'react';
+import { useEffect, useMemo, useReducer, useState } from 'react'
 import {
   AbstractActionComponent,
   Action,
@@ -17,19 +17,19 @@ import {
   mergeActionStates,
   MultiValueActionComponent,
   SingleValueActionComponent,
-} from '../api';
-import { checkSecurity, type SecurityLevel } from '../shared';
-import { isInterstitial } from '../utils/interstitial-url.ts';
+} from '../api'
+import { checkSecurity, type SecurityLevel } from '../shared'
+import { isInterstitial } from '../utils/interstitial-url.ts'
 import {
   isPostRequestError,
   isSignTransactionError,
-} from '../utils/type-guards.ts';
+} from '../utils/type-guards.ts'
 import {
   ActionLayout,
   type Disclaimer,
   DisclaimerType,
   type StylePreset,
-} from './ActionLayout';
+} from './ActionLayout'
 
 type ExecutionStatus =
   | 'blocked'
@@ -37,14 +37,14 @@ type ExecutionStatus =
   | 'idle'
   | 'executing'
   | 'success'
-  | 'error';
+  | 'error'
 
 interface ExecutionState {
-  status: ExecutionStatus;
-  checkingSupportability?: boolean;
-  executingAction?: AbstractActionComponent | null;
-  errorMessage?: string | null;
-  successMessage?: string | null;
+  status: ExecutionStatus
+  checkingSupportability?: boolean
+  executingAction?: AbstractActionComponent | null
+  errorMessage?: string | null
+  successMessage?: string | null
 }
 
 enum ExecutionType {
@@ -60,34 +60,34 @@ enum ExecutionType {
 
 type ActionValue =
   | {
-      type: ExecutionType.CHECK_SUPPORTABILITY;
+      type: ExecutionType.CHECK_SUPPORTABILITY
     }
   | {
-      type: ExecutionType.INITIATE;
-      executingAction: AbstractActionComponent;
-      errorMessage?: string;
+      type: ExecutionType.INITIATE
+      executingAction: AbstractActionComponent
+      errorMessage?: string
     }
   | {
-      type: ExecutionType.FINISH;
-      successMessage?: string | null;
+      type: ExecutionType.FINISH
+      successMessage?: string | null
     }
   | {
-      type: ExecutionType.FAIL;
-      errorMessage: string;
+      type: ExecutionType.FAIL
+      errorMessage: string
     }
   | {
-      type: ExecutionType.RESET;
+      type: ExecutionType.RESET
     }
   | {
-      type: ExecutionType.UNBLOCK;
+      type: ExecutionType.UNBLOCK
     }
   | {
-      type: ExecutionType.BLOCK;
+      type: ExecutionType.BLOCK
     }
   | {
-      type: ExecutionType.SOFT_RESET;
-      errorMessage?: string;
-    };
+      type: ExecutionType.SOFT_RESET
+      errorMessage?: string
+    }
 
 const executionReducer = (
   state: ExecutionState,
@@ -98,27 +98,27 @@ const executionReducer = (
       return {
         status: 'checking-supportability',
         checkingSupportability: true,
-      };
+      }
     case ExecutionType.INITIATE:
-      return { status: 'executing', executingAction: action.executingAction };
+      return { status: 'executing', executingAction: action.executingAction }
     case ExecutionType.FINISH:
       return {
         ...state,
         status: 'success',
         successMessage: action.successMessage,
         errorMessage: null,
-      };
+      }
     case ExecutionType.FAIL:
       return {
         ...state,
         status: 'error',
         errorMessage: action.errorMessage,
         successMessage: null,
-      };
+      }
     case ExecutionType.RESET:
       return {
         status: 'idle',
-      };
+      }
     case ExecutionType.SOFT_RESET:
       return {
         ...state,
@@ -126,17 +126,17 @@ const executionReducer = (
         status: 'idle',
         errorMessage: action.errorMessage,
         successMessage: null,
-      };
+      }
     case ExecutionType.BLOCK:
       return {
         status: 'blocked',
-      };
+      }
     case ExecutionType.UNBLOCK:
       return {
         status: 'idle',
-      };
+      }
   }
-};
+}
 
 const buttonVariantMap: Record<
   ExecutionStatus,
@@ -148,7 +148,7 @@ const buttonVariantMap: Record<
   executing: 'default',
   success: 'success',
   error: 'error',
-};
+}
 
 const buttonLabelMap: Record<ExecutionStatus, string | null> = {
   'checking-supportability': 'Loading',
@@ -157,30 +157,30 @@ const buttonLabelMap: Record<ExecutionStatus, string | null> = {
   executing: 'Executing',
   success: 'Completed',
   error: 'Failed',
-};
+}
 
 type ActionStateWithOrigin =
   | {
-      action: ExtendedActionState;
-      origin?: never;
+      action: ExtendedActionState
+      origin?: never
     }
   | {
-      action: ExtendedActionState;
-      origin: ExtendedActionState;
-      originType: Source;
-    };
+      action: ExtendedActionState
+      origin: ExtendedActionState
+      originType: Source
+    }
 
 const getOverallActionState = (
   action: Action,
   websiteUrl?: string | null,
 ): ActionStateWithOrigin => {
-  const actionState = getExtendedActionState(action);
-  const originalUrlData = websiteUrl ? isInterstitial(websiteUrl) : null;
+  const actionState = getExtendedActionState(action)
+  const originalUrlData = websiteUrl ? isInterstitial(websiteUrl) : null
 
   if (!originalUrlData) {
     return {
       action: actionState,
-    };
+    }
   }
 
   if (originalUrlData.isInterstitial) {
@@ -188,15 +188,15 @@ const getOverallActionState = (
       action: actionState,
       origin: getExtendedInterstitialState(websiteUrl!),
       originType: 'interstitials' as Source,
-    };
+    }
   }
 
   return {
     action: actionState,
     origin: getExtendedWebsiteState(websiteUrl!),
     originType: 'websites' as Source,
-  };
-};
+  }
+}
 
 const checkSecurityFromActionState = (
   state: ActionStateWithOrigin,
@@ -205,17 +205,17 @@ const checkSecurityFromActionState = (
   return checkSecurity(state.action, normalizedSecurityLevel.actions) &&
     state.origin
     ? checkSecurity(state.origin, normalizedSecurityLevel[state.originType])
-    : true;
-};
+    : true
+}
 
-const SOFT_LIMIT_BUTTONS = 10;
-const SOFT_LIMIT_INPUTS = 3;
-const SOFT_LIMIT_FORM_INPUTS = 10;
+const SOFT_LIMIT_BUTTONS = 10
+const SOFT_LIMIT_INPUTS = 3
+const SOFT_LIMIT_FORM_INPUTS = 10
 
-const DEFAULT_SECURITY_LEVEL: SecurityLevel = 'only-trusted';
+const DEFAULT_SECURITY_LEVEL: SecurityLevel = 'only-trusted'
 
-type Source = 'websites' | 'interstitials' | 'actions';
-type NormalizedSecurityLevel = Record<Source, SecurityLevel>;
+type Source = 'websites' | 'interstitials' | 'actions'
+type NormalizedSecurityLevel = Record<Source, SecurityLevel>
 
 // overall flow: check-supportability -> idle/block -> executing -> success/error or chain
 export const ActionContainer = ({
@@ -227,35 +227,35 @@ export const ActionContainer = ({
   stylePreset = 'default',
   Experimental__ActionLayout = ActionLayout,
 }: {
-  action: Action;
-  websiteUrl?: string | null;
-  websiteText?: string | null;
-  callbacks?: Partial<ActionCallbacksConfig>;
-  securityLevel?: SecurityLevel | NormalizedSecurityLevel;
-  stylePreset?: StylePreset;
+  action: Action
+  websiteUrl?: string | null
+  websiteText?: string | null
+  callbacks?: Partial<ActionCallbacksConfig>
+  securityLevel?: SecurityLevel | NormalizedSecurityLevel
+  stylePreset?: StylePreset
   // please do not use it yet, better api is coming..
-  Experimental__ActionLayout?: typeof ActionLayout;
+  Experimental__ActionLayout?: typeof ActionLayout
 }) => {
-  const [action, setAction] = useState(initialAction);
+  const [action, setAction] = useState(initialAction)
   const normalizedSecurityLevel: NormalizedSecurityLevel = useMemo(() => {
     if (typeof securityLevel === 'string') {
       return {
         websites: securityLevel,
         interstitials: securityLevel,
         actions: securityLevel,
-      };
+      }
     }
 
-    return securityLevel;
-  }, [securityLevel]);
+    return securityLevel
+  }, [securityLevel])
 
   const [actionState, setActionState] = useState(
     getOverallActionState(action, websiteUrl),
-  );
+  )
 
   const [supportability, setSupportability] = useState<ActionSupportability>({
     isSupported: true,
-  });
+  })
 
   const overallState = useMemo(
     () =>
@@ -265,77 +265,77 @@ export const ActionContainer = ({
         ) as ExtendedActionState[]),
       ),
     [actionState],
-  );
+  )
 
   // adding ui check as well, to make sure, that on runtime registry lookups, we are not allowing the action to be executed
   const isPassingSecurityCheck = checkSecurityFromActionState(
     actionState,
     normalizedSecurityLevel,
-  );
+  )
 
   const [executionState, dispatch] = useReducer(executionReducer, {
     status: 'checking-supportability',
-  });
+  })
 
   // in case, where initialAction or websiteUrl changes, we need to reset the action state
   useEffect(() => {
     if (action === initialAction || action.isChained) {
-      return;
+      return
     }
 
-    setAction(initialAction);
-    setActionState(getOverallActionState(initialAction, websiteUrl));
-    dispatch({ type: ExecutionType.CHECK_SUPPORTABILITY });
+    setAction(initialAction)
+    setActionState(getOverallActionState(initialAction, websiteUrl))
+    dispatch({ type: ExecutionType.CHECK_SUPPORTABILITY })
     // we want to run this one when initialAction or websiteUrl changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialAction, websiteUrl]);
+  }, [initialAction, websiteUrl])
 
   useEffect(() => {
     callbacks?.onActionMount?.(
       action,
       websiteUrl ?? action.url,
       actionState.action,
-    );
+    )
     // we ignore changes to `actionState.action` or callbacks explicitly, since we want this to run once
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [action, websiteUrl]);
+  }, [action, websiteUrl])
 
   useEffect(() => {
-    const liveDataConfig = action.liveData_experimental;
+    const liveDataConfig = action.liveData_experimental
     if (
       !liveDataConfig ||
       !liveDataConfig.enabled ||
       executionState.status !== 'idle' ||
       action.isChained
     ) {
-      return;
+      return
     }
 
-    let timeout: any; // NodeJS.Timeout
+    let timeout: any // NodeJS.Timeout
     const fetcher = async () => {
       try {
-        const newAction = await action.refresh();
+        const newAction = await action.refresh()
 
         // if after refresh user clicked started execution, we should not update the action
         if (executionState.status === 'idle') {
-          setAction(newAction);
+          setAction(newAction)
         }
       } catch (e) {
         console.error(
           `[@dialectlabs/blinks] Failed to fetch live data for action ${action.url}`,
-        );
+        )
         // if fetch failed, we retry after the same delay
-        timeout = setTimeout(fetcher, liveDataConfig.delayMs);
+        timeout = setTimeout(fetcher, liveDataConfig.delayMs)
       }
-    };
+    }
 
     // since either way we're rebuilding the whole action, we'll update and restart this effect
-    timeout = setTimeout(fetcher, liveDataConfig.delayMs);
+    timeout = setTimeout(fetcher, liveDataConfig.delayMs)
 
     return () => {
-      clearTimeout(timeout);
-    };
-  }, [action, executionState.status]);
+      clearTimeout(timeout)
+    }
+  }, [action, executionState.status])
 
   useEffect(() => {
     const checkSupportability = async (action: Action) => {
@@ -343,24 +343,24 @@ export const ActionContainer = ({
         action.isChained ||
         executionState.status !== 'checking-supportability'
       ) {
-        return;
+        return
       }
       try {
-        const supportability = await action.isSupported();
-        console.log('supportability', supportability);
-        setSupportability(supportability);
+        const supportability = await action.isSupported()
+        console.log('supportability', supportability)
+        setSupportability(supportability)
       } finally {
         dispatch({
           type:
             overallState !== 'malicious' && isPassingSecurityCheck
               ? ExecutionType.RESET
               : ExecutionType.BLOCK,
-        });
+        })
       }
-    };
+    }
 
-    checkSupportability(action);
-  }, [action, executionState.status, overallState, isPassingSecurityCheck]);
+    checkSupportability(action)
+  }, [action, executionState.status, overallState, isPassingSecurityCheck])
 
   const buttons = useMemo(
     () =>
@@ -373,7 +373,8 @@ export const ActionContainer = ({
         )
         .toSpliced(SOFT_LIMIT_BUTTONS) ?? [],
     [action, executionState.executingAction],
-  );
+  )
+  console.log(buttons)
   const inputs = useMemo(
     () =>
       action?.actions
@@ -389,7 +390,7 @@ export const ActionContainer = ({
         )
         .toSpliced(SOFT_LIMIT_INPUTS) ?? [],
     [action, executionState.executingAction],
-  );
+  )
   const form = useMemo(() => {
     const [formComponent] =
       action?.actions
@@ -398,10 +399,10 @@ export const ActionContainer = ({
           executionState.executingAction
             ? executionState.executingAction === it
             : true,
-        ) ?? [];
+        ) ?? []
 
-    return formComponent;
-  }, [action, executionState.executingAction]);
+    return formComponent
+  }, [action, executionState.executingAction])
 
   const execute = async (
     component: AbstractActionComponent,
@@ -411,28 +412,28 @@ export const ActionContainer = ({
       if (component instanceof FormActionComponent) {
         Object.entries(params).forEach(([name, value]) =>
           component.setValue(value, name),
-        );
+        )
       }
 
       if (component instanceof MultiValueActionComponent) {
-        component.setValue(params[component.parameter.name]);
+        component.setValue(params[component.parameter.name])
       }
 
       if (component instanceof SingleValueActionComponent) {
-        const incomingValues = params[component.parameter.name];
+        const incomingValues = params[component.parameter.name]
         const value =
           typeof incomingValues === 'string'
             ? incomingValues
-            : incomingValues[0];
-        component.setValue(value);
+            : incomingValues[0]
+        component.setValue(value)
       }
     }
 
-    const newActionState = getOverallActionState(action, websiteUrl);
+    const newActionState = getOverallActionState(action, websiteUrl)
     const newIsPassingSecurityCheck = checkSecurityFromActionState(
       newActionState,
       normalizedSecurityLevel,
-    );
+    )
 
     // if action state has changed or origin's state has changed, and it doesn't pass the security check or became malicious, block the action
     if (
@@ -440,30 +441,32 @@ export const ActionContainer = ({
         newActionState.origin !== actionState.origin) &&
       !newIsPassingSecurityCheck
     ) {
-      setActionState(newActionState);
-      dispatch({ type: ExecutionType.BLOCK });
-      return;
+      setActionState(newActionState)
+      dispatch({ type: ExecutionType.BLOCK })
+      return
     }
 
-    dispatch({ type: ExecutionType.INITIATE, executingAction: component });
+    dispatch({ type: ExecutionType.INITIATE, executingAction: component })
 
     const context: ActionContext = {
       action: component.parent,
       actionType: actionState.action,
       originalUrl: websiteUrl ?? component.parent.url,
       triggeredLinkedAction: component,
-    };
+    }
+
+    console.log('context', context)
 
     try {
-      const account = await action.adapter.connect(context);
+      const account = await action.adapter.connect(context)
       if (!account) {
-        dispatch({ type: ExecutionType.RESET });
-        return;
+        dispatch({ type: ExecutionType.RESET })
+        return
       }
 
       const tx = await component
         .post(account)
-        .catch((e: Error) => ({ error: e.message }));
+        .catch((e: Error) => ({ error: e.message }))
 
       if (!(tx as ActionPostResponse).transaction || isPostRequestError(tx)) {
         dispatch({
@@ -471,52 +474,52 @@ export const ActionContainer = ({
           errorMessage: isPostRequestError(tx)
             ? tx.error
             : 'Transaction data missing',
-        });
-        return;
+        })
+        return
       }
 
       const signResult = await action.adapter.signTransaction(
         tx.transaction,
         context,
-      );
+      )
 
       if (!signResult || isSignTransactionError(signResult)) {
-        dispatch({ type: ExecutionType.RESET });
+        dispatch({ type: ExecutionType.RESET })
       } else {
-        await action.adapter.confirmTransaction(signResult.signature, context);
+        await action.adapter.confirmTransaction(signResult.signature, context)
 
         if (!tx.links?.next) {
           dispatch({
             type: ExecutionType.FINISH,
             successMessage: tx.message,
-          });
-          return;
+          })
+          return
         }
 
         // chain
         const nextAction = await action.chain(tx.links.next, {
           signature: signResult.signature,
           account: account,
-        });
+        })
 
         if (!nextAction) {
           dispatch({
             type: ExecutionType.FINISH,
             successMessage: tx.message,
-          });
-          return;
+          })
+          return
         }
 
-        setAction(nextAction);
-        dispatch({ type: ExecutionType.RESET });
+        setAction(nextAction)
+        dispatch({ type: ExecutionType.RESET })
       }
     } catch (e) {
       dispatch({
         type: ExecutionType.SOFT_RESET,
         errorMessage: (e as Error).message ?? 'Unknown error, please try again',
-      });
+      })
     }
-  };
+  }
 
   const asButtonProps = (it: ButtonActionComponent) => {
     return {
@@ -534,8 +537,8 @@ export const ActionContainer = ({
         ],
       onClick: (params?: Record<string, string | string[]>) =>
         execute(it.parentComponent ?? it, params),
-    };
-  };
+    }
+  }
 
   const asInputProps = (
     it: SingleValueActionComponent | MultiValueActionComponent,
@@ -567,8 +570,8 @@ export const ActionContainer = ({
         placement === 'standalone'
           ? asButtonProps(it.toButtonActionComponent())
           : undefined,
-    };
-  };
+    }
+  }
 
   const asFormProps = (it: FormActionComponent) => {
     return {
@@ -578,8 +581,8 @@ export const ActionContainer = ({
           placement: 'form',
         }),
       ),
-    };
-  };
+    }
+  }
 
   const disclaimer: Disclaimer | null = useMemo(() => {
     if (overallState === 'malicious') {
@@ -590,18 +593,18 @@ export const ActionContainer = ({
           executionState.status !== 'blocked' &&
           executionState.status !== 'checking-supportability',
         onSkip: () => dispatch({ type: ExecutionType.UNBLOCK }),
-      };
+      }
     }
 
     if (overallState === 'unknown') {
       return {
         type: DisclaimerType.UNKNOWN,
         ignorable: isPassingSecurityCheck,
-      };
+      }
     }
 
-    return null;
-  }, [executionState.status, isPassingSecurityCheck, overallState]);
+    return null
+  }, [executionState.status, isPassingSecurityCheck, overallState])
 
   return (
     <Experimental__ActionLayout
@@ -624,5 +627,5 @@ export const ActionContainer = ({
       disclaimer={disclaimer}
       supportability={supportability}
     />
-  );
-};
+  )
+}
