@@ -19,6 +19,7 @@ import {
   MultiValueActionComponent,
   SingleValueActionComponent,
 } from '../api'
+import '../index.css'
 import { checkSecurity, type SecurityLevel } from '../shared'
 import { ActionContainer, type StylePreset } from '../ui'
 import { SpinnerDots } from '../ui/icons/SpinnerDots.tsx'
@@ -132,6 +133,10 @@ const ReactSpan = ({
     'idle' | 'loading' | 'signing' | 'success' | 'error'
   >('idle')
   const [selectedTip, setSelectedTip] = useState<'SEND' | 'SOL'>()
+  const [setting, setSetting] = useState<{
+    cheerup: boolean
+    message: boolean
+  }>({ cheerup: false, message: false })
 
   const handleClickOutside = () => {
     setShowPopup(false)
@@ -150,23 +155,32 @@ const ReactSpan = ({
         popupRef.current.style.left = `${rect.left}px`
         popupRef.current.style.zIndex = '1000'
       }
-
-      resolveDomain(domain)
     }
+
+    resolveDomain(domain)
+    fetchSetting()
   }, [showPopup])
 
   function trimWalletAddress(walletAddress: string) {
     return walletAddress.slice(0, 6) + '...' + walletAddress.slice(-4)
   }
 
+  const fetchSetting = async () => {
+    const res = await fetch(
+      'http://localhost:3000/api/setting?domain=sonhavietnamese.blink',
+    )
+    const data = await res.json()
+    setSetting(data)
+  }
+
   async function resolveDomain(domain: string) {
     try {
       setIsLoading(true)
-      const response = await fetch(
-        `https://www.dotblink.me/api/username/${domain.split('.')[0]}/profile`,
-      )
+      const response = await fetch('http://localhost:3000/api/domain', {
+        method: 'GET',
+      })
       const data = await response.json()
-      setOwner(data.owner.address)
+      setOwner(data.owner)
     } catch (error) {
       console.error(error)
     } finally {
@@ -248,20 +262,74 @@ const ReactSpan = ({
   const buttons = []
 
   const doTransaction = async () => {
+    // @ts-ignore
     await asButtonProps({}).onClick()
     // const account = await adapter.connect(context) // const connection = await adapter.connect()
   }
-
   return (
     <>
-      <span className="inline" onClick={(e) => e.stopPropagation()}>
+      <span
+        style={{
+          position: 'relative',
+          display: 'inline-block',
+        }}
+        className="container inline"
+        onClick={(e) => e.stopPropagation()}
+      >
         <span
           id="react-span"
-          style={{ color: 'orange', cursor: 'pointer' }}
+          style={{
+            color: 'orange',
+            cursor: 'pointer',
+            fontWeight: 500,
+            animation: 'background-pan 3s linear infinite',
+            background:
+              'linear-gradient(to right,rgb(249, 87, 114),rgb(228,190, 92),rgb(244, 143, 177),rgb(249, 87, 114))',
+            backgroundSize: '200%',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            whiteSpace: 'nowrap',
+          }}
           onClick={() => setShowPopup(!showPopup)}
         >
           {domain}
         </span>
+
+        <style>
+          {`
+            
+@keyframes background-pan {
+  from {
+    background-position: 0% center;
+  }
+  
+  to {
+    background-position: -200% center;
+  }
+}
+
+@keyframes scale {
+  from, to {
+    transform: scale(0);
+  }
+  
+  50% {
+    transform: scale(1);
+  }
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  
+  to {
+    transform: rotate(180deg);
+  }
+}
+
+          `}
+        </style>
       </span>
       {createPortal(
         <div
@@ -285,7 +353,7 @@ const ReactSpan = ({
           <div
             style={{
               width: '100%',
-              height: '300px',
+              height: '100%',
               overflow: 'hidden',
               position: 'absolute',
               pointerEvents: 'none',
@@ -620,32 +688,124 @@ const ReactSpan = ({
               </span>
             </div>
 
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 8,
-                padding: 16,
-              }}
-            >
-              <small
-                style={{
-                  marginLeft: 2,
-                  color: 'rgba(255,255,255,0.5)',
-                  fontSize: 12,
-                }}
-              >
-                Cheers up
-              </small>
+            {setting.message && (
               <div
                 style={{
                   display: 'flex',
+                  flexDirection: 'column',
                   gap: 8,
-                  fontSize: 14,
+                  padding: '16px 16px 0px',
+                  marginTop: 16,
                 }}
               >
-                {selectedTip === undefined && (
-                  <>
+                <small
+                  style={{
+                    marginLeft: 2,
+                    color: 'rgba(255,255,255,0.5)',
+                    fontSize: 12,
+                  }}
+                >
+                  Message
+                </small>
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: 8,
+                    fontSize: 14,
+                  }}
+                >
+                  <input
+                    placeholder="Want to say hi?"
+                    style={{
+                      flex: 1,
+                      outline: 'none',
+                      border: 'none',
+                      padding: 12,
+                      borderRadius: 12,
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {setting.cheerup && (
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 8,
+                  padding: 16,
+                }}
+              >
+                <small
+                  style={{
+                    marginLeft: 2,
+                    color: 'rgba(255,255,255,0.5)',
+                    fontSize: 12,
+                  }}
+                >
+                  Cheers up
+                </small>
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: 8,
+                    fontSize: 14,
+                  }}
+                >
+                  {selectedTip === undefined && (
+                    <>
+                      <button
+                        style={{
+                          flex: 1,
+                          outline: 'none',
+                          border: 'none',
+                          padding: 12,
+                          borderRadius: 12,
+                          backgroundColor: '#000000',
+                          color: 'white',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                        }}
+                        disabled={state !== 'idle'}
+                        onClick={() => {
+                          setSelectedTip('SEND')
+                          doTransaction()
+                        }}
+                      >
+                        <span>
+                          <strong>$SEND</strong>
+                        </span>
+                      </button>
+                      <button
+                        style={{
+                          flex: 1,
+                          outline: 'none',
+                          border: 'none',
+                          padding: 12,
+                          borderRadius: 12,
+                          backgroundColor: '#1A1616',
+                          color: 'white',
+                          display: 'flex',
+                          alignItems: 'center',
+                          cursor: 'pointer',
+                          justifyContent: 'center',
+                        }}
+                        disabled={state !== 'idle'}
+                        onClick={() => {
+                          setSelectedTip('SOL')
+                          doTransaction()
+                        }}
+                      >
+                        <span>
+                          <strong>$SOL</strong>
+                        </span>
+                      </button>
+                    </>
+                  )}
+                  {selectedTip === 'SEND' && (
                     <button
                       style={{
                         flex: 1,
@@ -659,17 +819,35 @@ const ReactSpan = ({
                         alignItems: 'center',
                         justifyContent: 'center',
                         cursor: 'pointer',
+                        gap: 8,
                       }}
                       disabled={state !== 'idle'}
                       onClick={() => {
                         setSelectedTip('SEND')
-                        doTransaction()
                       }}
                     >
-                      <span>
-                        <strong>$SEND</strong>
-                      </span>
+                      {(state === 'loading' || state === 'signing') && (
+                        <SpinnerDots />
+                      )}
+                      {state === 'loading' && (
+                        <span>
+                          Sending <strong>$SEND</strong>
+                        </span>
+                      )}
+                      {state === 'signing' && <span>Signing transaction</span>}
+                      {state === 'idle' && (
+                        <span>
+                          <strong>$SEND</strong>
+                        </span>
+                      )}
+                      {state === 'success' && (
+                        <span>
+                          Cheered <strong>{domain.split('.')[0]}</strong> up! 🎉
+                        </span>
+                      )}
                     </button>
+                  )}
+                  {selectedTip === 'SOL' && (
                     <button
                       style={{
                         flex: 1,
@@ -683,107 +861,38 @@ const ReactSpan = ({
                         alignItems: 'center',
                         cursor: 'pointer',
                         justifyContent: 'center',
+                        gap: 8,
                       }}
                       disabled={state !== 'idle'}
                       onClick={() => {
                         setSelectedTip('SOL')
-                        doTransaction()
                       }}
                     >
-                      <span>
-                        <strong>$SOL</strong>
-                      </span>
-                    </button>
-                  </>
-                )}
-                {selectedTip === 'SEND' && (
-                  <button
-                    style={{
-                      flex: 1,
-                      outline: 'none',
-                      border: 'none',
-                      padding: 12,
-                      borderRadius: 12,
-                      backgroundColor: '#000000',
-                      color: 'white',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      gap: 8,
-                    }}
-                    disabled={state !== 'idle'}
-                    onClick={() => {
-                      setSelectedTip('SEND')
-                      console.log('tip')
-                    }}
-                  >
-                    {(state === 'loading' || state === 'signing') && (
-                      <SpinnerDots />
-                    )}
-                    {state === 'loading' && (
-                      <span>
-                        Sending <strong>$SEND</strong>
-                      </span>
-                    )}
-                    {state === 'signing' && <span>Signing transaction</span>}
-                    {state === 'idle' && (
-                      <span>
-                        <strong>$SEND</strong>
-                      </span>
-                    )}
-                    {state === 'success' && (
-                      <span>
-                        Cheered <strong>{domain.split('.')[0]}</strong> up! 🎉
-                      </span>
-                    )}
-                  </button>
-                )}
-                {selectedTip === 'SOL' && (
-                  <button
-                    style={{
-                      flex: 1,
-                      outline: 'none',
-                      border: 'none',
-                      padding: 12,
-                      borderRadius: 12,
-                      backgroundColor: '#1A1616',
-                      color: 'white',
-                      display: 'flex',
-                      alignItems: 'center',
-                      cursor: 'pointer',
-                      justifyContent: 'center',
-                      gap: 8,
-                    }}
-                    disabled={state !== 'idle'}
-                    onClick={() => {
-                      setSelectedTip('SOL')
-                    }}
-                  >
-                    {(state === 'loading' || state === 'signing') && (
-                      <SpinnerDots />
-                    )}
+                      {(state === 'loading' || state === 'signing') && (
+                        <SpinnerDots />
+                      )}
 
-                    {state === 'loading' && (
-                      <span>
-                        Sending <strong>$SOL</strong>
-                      </span>
-                    )}
-                    {state === 'signing' && <span>Signing transaction</span>}
-                    {state === 'idle' && (
-                      <span>
-                        <strong>$SOL</strong>
-                      </span>
-                    )}
-                    {state === 'success' && (
-                      <span>
-                        Cheered <strong>{domain.split('.')[0]}</strong> up! 🎉
-                      </span>
-                    )}
-                  </button>
-                )}
+                      {state === 'loading' && (
+                        <span>
+                          Sending <strong>$SOL</strong>
+                        </span>
+                      )}
+                      {state === 'signing' && <span>Signing transaction</span>}
+                      {state === 'idle' && (
+                        <span>
+                          <strong>$SOL</strong>
+                        </span>
+                      )}
+                      {state === 'success' && (
+                        <span>
+                          Cheered <strong>{domain.split('.')[0]}</strong> up! 🎉
+                        </span>
+                      )}
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>,
         document.body,
@@ -1050,7 +1159,7 @@ function addStyles(element: HTMLElement) {
 
 function findAllDomainsInText(element: Element) {
   const flatten = element.textContent
-  const domains = 'lfg.blink'
+  const domains = 'sonhavietnamese.blink'
   const domainRegex = new RegExp(`\\b${domains}\\b`, 'gi')
   const matches = flatten?.match(domainRegex)
   return matches
